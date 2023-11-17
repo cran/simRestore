@@ -66,6 +66,9 @@ std::vector<junction> recombine(const std::vector<junction>& chromosome1,
 organism::organism() {
     age = 0;
     freq_anc = -1;
+    sex = Sex::female;
+    chromosome1 = std::vector<chrom>(1);
+    chromosome2 = std::vector<chrom>(1);
 }
 
 junction::junction(long double loc, int B)  {
@@ -79,13 +82,16 @@ junction::junction(const junction& other) {
 }
 
 junction& junction::operator=(const junction& other) {
-    pos = other.pos;
-    right = other.right;
+    if (this != &other) {
+      pos = other.pos;
+      right = other.right;
+    }
     return *this;
 }
 
 organism::organism(double init_freq,
-                   size_t num_chromosomes)    {
+                   size_t num_chromosomes,
+                   Sex init_sex)    {
   for (size_t i = 0; i < num_chromosomes; ++i) {
       chrom chrom1;
       chrom chrom2;
@@ -129,7 +135,7 @@ organism::organism(double init_freq,
 
     freq_anc = init_freq;
     age = 0;
-    sex = female;
+    sex = init_sex;
     return;
 }
 
@@ -145,50 +151,9 @@ organism::organism(const genome& c1,
 
 void organism::set_nonrandom_sex(double prob_male,
                                  rnd_t* rndgen) {
-  sex = female;
-  if ((*rndgen).uniform() < prob_male) {
-    sex = male;
-  }
-  return;
+  sex = (*rndgen).uniform() < prob_male ? male : female;
 }
 
-organism::organism(const organism& other) :
-  age(other.age),
-  chromosome1(other.chromosome1),
-  chromosome2(other.chromosome2),
-  sex(other.sex),
-  freq_anc(other.freq_anc)  {
-}
-
-organism& organism::operator=(const organism& other) {
-    if (this != &other) {
-        chromosome1 = other.chromosome1;
-        chromosome2 = other.chromosome2;
-        sex = other.sex;
-        freq_anc = other.freq_anc;
-        age = other.age;
-    }
-    return *this;
-}
-
-organism::organism(organism&& other) {
-    chromosome1 = other.chromosome1;
-    chromosome2 = other.chromosome2;
-    sex = other.sex;
-    freq_anc = other.freq_anc;
-    age = other.age;
-}
-
-organism& organism::operator=(organism&& other) {
-    if (this != &other) {
-        chromosome1 = other.chromosome1;
-        chromosome2 = other.chromosome2;
-        sex = other.sex;
-        freq_anc = other.freq_anc;
-        age = other.age;
-    }
-    return *this;
-}
 
 genome organism::gamete(const std::vector<double>& morgan,
                         rnd_t* rndgen) const noexcept {
@@ -237,63 +202,49 @@ void organism::calc_freq_anc() {
     freq_anc = 0.5 * (freq1 + freq2);
 }
 
-organism_simple::organism_simple() {
-    freq_anc = -1.0;
-    age = 0;
-}
-
-organism_simple::organism_simple(double initLoc, size_t num_chromosomes) {
-    freq_anc = initLoc;
-    chromosome1 = std::vector<double>(num_chromosomes, initLoc);
-    chromosome2 = std::vector<double>(num_chromosomes, initLoc);
-    age = 0;
-}
 
 double organism_simple::calc_freq_chrom(const std::vector<double>& chrom) {
   double s = std::accumulate(chrom.begin(), chrom.end(), 0.0);
   return s * 1.0 / chrom.size();
 }
 
+organism_simple::organism_simple() {
+  freq_anc = 0.0;
+  age = 0;
+  chromosome1 = std::vector<double>(1, 0.0);
+  chromosome2 = std::vector<double>(1, 0.0);
+  sex = Sex::female;
+}
+
+organism_simple::organism_simple(double initLoc,
+                                 int num_chromosomes,
+                                 Sex init_sex) {
+  freq_anc = initLoc;
+  chromosome1 = std::vector<double>(num_chromosomes, initLoc);
+  chromosome2 = std::vector<double>(num_chromosomes, initLoc);
+  sex = init_sex;
+  age = 0;
+}
+
 organism_simple::organism_simple(const std::vector<double>& chrom1,
                                  const std::vector<double>& chrom2,
                                  double prob_female,
                                  rnd_t* rndgen) :
-    chromosome1(chrom1), chromosome2(chrom2) {
+    chromosome1(chrom1),
+    chromosome2(chrom2) {
     freq_anc = 0.5 * (calc_freq_chrom(chromosome1) +
                       calc_freq_chrom(chromosome2));
     set_nonrandom_sex(prob_female, rndgen);
     age = 0;
 }
 
-organism_simple::organism_simple(const organism_simple& other)  {
-    freq_anc = other.get_freq_anc();
-    chromosome1 = other.get_chromosome1();
-    chromosome2 = other.get_chromosome2();
-    sex = other.sex;
-    age = other.age;
-}
-
-organism_simple& organism_simple::operator=(const organism_simple& other) {
-    freq_anc = other.get_freq_anc();
-    chromosome1 = other.get_chromosome1();
-    chromosome2 = other.get_chromosome2();
-    sex = other.get_sex();
-    age = other.age;
-    return *this;
-}
-
 void organism_simple::set_nonrandom_sex(double prob_male,
                                     rnd_t* rndgen) {
-  sex = female;
-  if ((*rndgen).uniform() < prob_male) {
-    sex = male;
-  }
-  return;
+  sex = (*rndgen).uniform() < prob_male ? male : female;
 }
 
 std::vector<double> organism_simple::gamete(const std::vector<double>& morgan,
-                               rnd_t* rndgen)
-  const noexcept {
+                               rnd_t* rndgen) const noexcept {
   std::vector<double> output(morgan.size());
   for (size_t i = 0; i < morgan.size(); ++i) {
     output[i] = 0.5 * (chromosome1[i] + chromosome2[i]);
@@ -308,7 +259,7 @@ std::vector< std::vector<double> >
   std::vector< std::vector<double> > genome_info;
 
   double focal_sex = 0.0;
-  if (sex == female) focal_sex = 1.0;
+  if (sex == Sex::female) focal_sex = 1.0;
 
   for (size_t m = 0; m < chromosome1.size(); ++m) {
     genome_info.push_back({static_cast<double>(t),
@@ -338,7 +289,7 @@ std::vector< std::vector<double> >
   if (sex == female) focal_sex = 1.0;
 
   std::vector< std::vector<double> > genome_info;
-  for (int i = 0; i < chromosome1.size(); ++i) {
+  for (size_t i = 0; i < chromosome1.size(); ++i) {
     for (const auto& j : chromosome1[i]) {
       genome_info.push_back(
           {static_cast<double>(t),
@@ -351,7 +302,7 @@ std::vector< std::vector<double> >
            static_cast<double>(j.right)});
     }
   }
-  for (int i = 0; i < chromosome2.size(); ++i) {
+  for (size_t i = 0; i < chromosome2.size(); ++i) {
     for (const auto& j : chromosome2[i]) {
       genome_info.push_back(
       {static_cast<double>(t),

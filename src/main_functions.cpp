@@ -53,10 +53,6 @@ Rcpp::List simulate_complete(int pop_size,
                              double extra_pair_copulation,
                              bool return_genetics) {
   try {
-    if (verbose) {
-      Rcpp::Rcout << "performing the point model: " << use_simple << "\n";
-    }
-
     emp_genome dummy_genome;
 
     parameters params(pop_size,
@@ -105,7 +101,6 @@ Rcpp::List simulate_complete(int pop_size,
                                               seed);
 
       for (int r = 0; r < replicates; ++r) {
-        if (verbose) { Rcpp::Rcout << "starting replicate: " << r << "\n"; }
         output_data run_result = main_analysis.do_analysis();
         for (int t = 0; t < run_result.size(); ++t) {
           std::vector< double > temp =
@@ -136,10 +131,8 @@ Rcpp::List simulate_complete(int pop_size,
                                        seed);
 
       for (int r = 0; r < replicates; ++r) {
-        if (verbose) { Rcpp::Rcout << "starting replicate: " << r << "\n"; }
 
         output_data run_result = main_analysis.do_analysis();
-        if (verbose) { Rcpp::Rcout << "recording replicate: " << r << "\n"; }
 
         for (int t = 0; t < run_result.size(); ++t) {
           std::vector< double > temp =
@@ -162,7 +155,7 @@ Rcpp::List simulate_complete(int pop_size,
     }
 
     Rcpp::NumericMatrix output(results.size(), 8);
-    for (int i = 0; i < results.size(); ++i) {
+    for (size_t i = 0; i < results.size(); ++i) {
       output(i, 0) = results[i][0];
       output(i, 1) = results[i][1];
       output(i, 2) = results[i][2];

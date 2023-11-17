@@ -1,0 +1,11 @@
+name: simRestoreApp
+title: simRestoreApp
+username:
+account: thijsjanzen
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7729595
+bundleId: 7738733
+url: https://thijsjanzen.shinyapps.io/simRestoreApp/
+asMultiple: FALSE
+asStatic: FALSE

@@ -275,7 +275,7 @@ class analysis {
       females.push_back(base_pop[i]);
       females.back().set_sex(female);
     }
-    for (int i = num_females; i < base_pop.size(); ++i) {
+    for (size_t i = num_females; i < base_pop.size(); ++i) {
       males.push_back(base_pop[i]);
       males.back().set_sex(male);
     }
@@ -319,10 +319,6 @@ class analysis {
                             static_cast<int>(males.size() + females.size() ),
                             males.size(),
                             females.size());
-        if (verbose) {
-            Rcpp::Rcout << t << " " << f2[0] << "\t" <<
-              males.size()  << "\t" <<  females.size() << "\n";
-        }
     }
     output_pop = males;
     for (const auto& i : females) {
@@ -334,7 +330,8 @@ class analysis {
   void additional_death(std::vector< ANIMAL>* ANIMALs,
                         double death_rate,
                         int max_num) {
-    if (max_num > (*ANIMALs).size()) max_num = (*ANIMALs).size();
+    if (max_num > static_cast<int>((*ANIMALs).size()))
+          max_num = static_cast<int>((*ANIMALs).size());
     int num_dead = rndgen.binomial(max_num, death_rate);
     if (num_dead <= 0) return;
     for (int i = 0; i < num_dead; ++i) {
@@ -358,7 +355,7 @@ class analysis {
       std::shuffle((*males).begin(), (*males).end(), rndgen.rndgen);
     }
 
-    for (int i = 0, j = 0;
+    for (size_t i = 0, j = 0;
          i < (*females).size() && j < (*males).size();
          ++i, ++j) {
       // now, mated females and females experience additional death
@@ -370,7 +367,7 @@ class analysis {
         int k = 0;
         if (params.epc > 0.0) {
           k = rndgen.random_number((*males).size());
-          while (k == j && (*males).size() > 1)
+          while (k == static_cast<int>(j) && (*males).size() > 1)
             k = rndgen.random_number((*males).size());
         }
         generate_offspring(offspring_male,
@@ -397,7 +394,7 @@ class analysis {
                    std::vector< ANIMAL >* offspring_female,
                    std::vector< ANIMAL >* offspring_male,
                    double density_dependent_offspring_rate) {
-    for (int i = 0; i < (*females).size(); ++i) {
+    for (size_t i = 0; i < (*females).size(); ++i) {
       // now, mated females and females experience additional death
       if (rndgen.bernouilli(params.female_death_rate)) {
         (*females)[i] = (*females).back();
@@ -445,12 +442,14 @@ class analysis {
     update_start_season(females,
                         density_dependent_death_rate,
                         number_removed * (1.0 - params.sex_ratio_pull),
-                        females_added);
+                        females_added,
+                        Sex::female);
 
     update_start_season(males,
                         density_dependent_death_rate,
                         number_removed * params.sex_ratio_pull,
-                        males_added);
+                        males_added,
+                        Sex::male);
 
     if ((*females).empty() && (*males).empty()) {
        return;
@@ -543,7 +542,7 @@ class analysis {
   }
 
   void old_age(std::vector< ANIMAL >* pop) {
-    for (int i = 0; i < (*pop).size(); ++i) {
+    for (int i = 0; i < static_cast<int>((*pop).size()); ++i) {
       (*pop)[i].age++;
       if ((*pop)[i].age > params.max_age) {
         (*pop)[i] = (*pop).back();
@@ -556,7 +555,10 @@ class analysis {
   void update_start_season(std::vector< ANIMAL >* input_pop,
                            double death_rate,
                            int number_removed,
-                           int number_added) {
+                           int number_added,
+                           Sex local_sex) {
+    // we need to input the local sex type, in case input_pop is empty
+
     // first, regular death due to old age
     old_age(input_pop);
 
@@ -567,7 +569,7 @@ class analysis {
 
     // then, they can be killed (until number removed is reached)
     if (number_removed > 0) {
-      if (number_removed >= (*input_pop).size()) {
+      if (number_removed >= static_cast<int>((*input_pop).size())) {
         (*input_pop).clear();
       } else {
         for (int i = 0; i < number_removed; ++i) {
@@ -588,16 +590,19 @@ class analysis {
       add_to_population(input_pop,
                         number_added,
                         tag<ANIMAL>{},
-                        (*input_pop).back().get_sex());
+                        local_sex);
     }
     return;
   }
 
   void add_to_population(std::vector<organism_simple>* population,
-                         int number_added, tag<organism_simple>,
+                         int number_added,
+                         tag<organism_simple>,
                          const Sex& sex) {
-    organism_simple to_add(params.put_ancestry, params.morgan.size());
-    to_add.set_sex(sex);
+    organism_simple to_add(params.put_ancestry,
+                           params.morgan.size(),
+                           sex);
+
     for (int i = 0; i < number_added; ++i) {
       (*population).push_back(to_add);
     }
@@ -605,10 +610,11 @@ class analysis {
   }
 
   void add_to_population(std::vector<organism>* population,
-                         int number_added, tag<organism>,
+                         int number_added,
+                         tag<organism>,
                          const Sex& sex) {
-    organism to_add(params.put_ancestry, params.morgan.size());
-    to_add.set_sex(sex);
+    organism to_add(params.put_ancestry, params.morgan.size(), sex);
+
     for (int i = 0; i < number_added; ++i) {
       (*population).push_back(to_add);
     }
@@ -630,8 +636,8 @@ class analysis {
   }
 
   std::vector<organism> create_base_pop(tag<organism>) {
-    ANIMAL base_indiv(0.0, params.morgan.size());
-    ANIMAL target_indiv(1.0, params.morgan.size());
+    ANIMAL base_indiv(0.0, params.morgan.size(), Sex::female);
+    ANIMAL target_indiv(1.0, params.morgan.size(), Sex::female);
 
     std::vector< ANIMAL > population(params.pop_size);
 
@@ -663,8 +669,10 @@ class analysis {
   }
 
   std::vector< ANIMAL > admix() {
-    ANIMAL base_indiv(0.0, params.morgan.size());
-    ANIMAL target_indiv(1.0, params.morgan.size());
+    // we can initialise with female sex, as mating down below is not
+    // sex specific
+    ANIMAL base_indiv(0.0, params.morgan.size(), Sex::female);
+    ANIMAL target_indiv(1.0, params.morgan.size(), Sex::female);
 
     std::vector< ANIMAL > population(params.pop_size);
 
@@ -673,7 +681,7 @@ class analysis {
       ANIMAL parent2 = base_indiv;
 
       float freq_focal = rndgen.normal_positive(params.starting_freq,
-                                                 params.sd_starting_freq);
+                                                params.sd_starting_freq);
 
       if (rndgen.uniform() < freq_focal) {
         parent1 = target_indiv;
@@ -693,9 +701,9 @@ class analysis {
                              init_prob_female, &rndgen);
     }
 
-    for (size_t t = 0; t < params.number_of_generations; ++t) {
+    for (int t = 0; t < params.number_of_generations; ++t) {
       std::vector< ANIMAL > new_population(params.pop_size);
-      for (size_t i = 0; i < params.pop_size; ++i) {
+      for (int i = 0; i < params.pop_size; ++i) {
         int index1 = rndgen.random_number(params.pop_size);
         int index2 = rndgen.random_number(params.pop_size);
         while (index2 == index1) index2 = rndgen.random_number(params.pop_size);

@@ -23,7 +23,7 @@
 #' @examples
 #' opt_res <- optimize_static(target_frequency = 0.99,
 #'                            optimize_put = TRUE,
-#'                            num_generations = 20,
+#'                            num_generations = 10,
 #'                            starting_freq = 0.2,
 #'                            initial_population_size = 100)
 #' opt_res$put
@@ -143,7 +143,7 @@ optimize_static <- function(target_frequency = 0.99,
     b <- subset(result$results, result$results$t == num_generations)
     if (length(b$replicate) < 1) {
       if (!return_results) {
-        return(100)
+        return(1e6)
       } else {
         return(result)
       }
@@ -165,8 +165,8 @@ optimize_static <- function(target_frequency = 0.99,
                        return_results = FALSE,
                        return_gens = FALSE) {
     # normal fit is < 1, this is equal to infinite, but without warning
-    if (param[[1]] < 0) return(Inf)
-    if (param[[2]] < 0) return(Inf)
+    if (param[[1]] < 0) return(1e6)
+    if (param[[2]] < 0) return(1e6)
 
     result <- simulate_policy(initial_population_size =
                                 initial_population_size,
@@ -202,7 +202,7 @@ optimize_static <- function(target_frequency = 0.99,
 
     b <- subset(result$results, result$results$t == num_generations)
     if (length(b$replicate) < 1) {
-      return(Inf)
+      return(1e6)
     }
 
     freq <- mean(b$freq_focal_ancestry)
@@ -216,9 +216,6 @@ optimize_static <- function(target_frequency = 0.99,
       return(result)
     }
   }
-
-
-
 
   result <- c()
 
@@ -277,7 +274,8 @@ optimize_static <- function(target_frequency = 0.99,
   }
   if (optimize_pull > 0 && optimize_put <= 0) {
     fit_result <- stats::optimize(f = fit_killing,
-                                  interval = c(0, (initial_population_size)),
+                                  interval = c(0,
+                                               0.9 * (initial_population_size)),
                                   maximum = FALSE)
     start_val <- initial_population_size
     while (fit_result$objective > 1) {

@@ -2,7 +2,7 @@ Type: Package
 Package: simRestore
 Title: Simulate the Effect of Management Policies on Restoration
         Efforts
-Version: 1.1.4
+Version: 1.1.5
 Authors@R: 
     person("Thijs", "Janzen", , "thijsjanzen@gmail.com", role = c("aut", "cre"))
 Description: Simulation methods to study the effect of management policies on
@@ -17,10 +17,10 @@ Suggests: dplyr, ggplot2, knitr, magrittr, rmarkdown, shinyBS,
 LinkingTo: Rcpp
 VignetteBuilder: knitr
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 NeedsCompilation: yes
-Packaged: 2023-11-16 19:05:55 UTC; thijsjanzen
+Packaged: 2025-10-27 10:31:37 UTC; thijsjanzen
 Author: Thijs Janzen [aut, cre]
 Maintainer: Thijs Janzen <thijsjanzen@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-11-17 09:50:02 UTC
+Date/Publication: 2025-10-27 13:10:02 UTC
